@@ -61,22 +61,36 @@ server.get("/participants", (req, res) => {
 server.post("/messages", (req, res) => {
   const { to, text, type } = req.body;
   const { from } = req.headers;
-  const schema = Joi.string().empty();
-  if (
-    schema.validate(to).error ||
-    schema.validate(text).error ||
-    type !== ("message" && "private_message")
-  ) {
-    return res.sendStatus(422);
-  }
-  messages.push({
-    from,
-    to,
-    text,
-    type,
-    time: dayjs().format("HH:mm:ss"),
-  });
-  res.sendStatus(201);
+  const schemaForStrings = Joi.string().required();
+  const schemaForTypes = Joi.string()
+    .valid("message", "private_message")
+    .required();
+  db.collection("participants")
+    .findOne({ name: from })
+    .then((user) => {
+      if (user === null) {
+        res.sendStatus(422);
+      } else {
+        if (
+          schemaForStrings.validate(to).error ||
+          schemaForStrings.validate(text).error ||
+          schemaForTypes.validate(type).error
+        ) {
+          return res.sendStatus(422);
+        }
+        db.collection("messages")
+          .insertOne({
+            from,
+            to,
+            text,
+            type,
+            time: dayjs().format("HH:mm:ss"),
+          })
+          .catch((err) => console.log(err.message));
+        res.sendStatus(201);
+      }
+    })
+    .catch((err) => console.log(err.message));
 });
 
 server.get("/messages", (req, res) => {
