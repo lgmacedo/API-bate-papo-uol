@@ -94,8 +94,30 @@ server.post("/messages", (req, res) => {
 });
 
 server.get("/messages", (req, res) => {
-  const { User } = req.headers;
+  const { user } = req.headers;
   const { limit } = req.query;
+  db.collection("messages")
+    .find({
+      $or: [{ type: "message" }, { to: "Todos" }, { to: user }, { from: user }],
+    })
+    .toArray()
+    .then((msgs) => {
+      if (!limit) {
+        res.send(msgs);
+      } else {
+        const numberLimit = Number(limit);
+        if (
+          numberLimit === 0 ||
+          numberLimit < 0 ||
+          isNaN(numberLimit) === true
+        ) {
+          res.sendStatus(422);
+        } else {
+          res.send(msgs.slice(-numberLimit));
+        }
+      }
+    })
+    .catch((err) => console.log(err.message));
 });
 
 server.post("/status", (req, res) => {
