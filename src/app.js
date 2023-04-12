@@ -121,10 +121,23 @@ server.get("/messages", (req, res) => {
 });
 
 server.post("/status", (req, res) => {
-  const { User } = req.headers;
-  if (!User) {
+  const { user } = req.headers;
+  if (!user) {
     return res.sendStatus(404);
   }
+  db.collection("participants")
+    .findOne({ name: user })
+    .then((user) => {
+      if (user === null) {
+        res.sendStatus(404);
+      } else {
+        db.collection("participants")
+          .updateOne({ name: user.name }, { $set: { lastStatus: Date.now() } })
+          .then(res.sendStatus(200))
+          .catch((err) => console.log(err.message));
+      }
+    })
+    .catch((err) => console.log(err.message));
 });
 
 const PORT = 5001;
