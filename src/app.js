@@ -135,7 +135,7 @@ server.post("/status", (req, res) => {
       } else {
         db.collection("participants")
           .updateOne({ name: user.name }, { $set: { lastStatus: Date.now() } })
-          .then(res.sendStatus(200))
+          .then(res.sendStatus(201))
           .catch((err) => console.log(err.message));
       }
     })
