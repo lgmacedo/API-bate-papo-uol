@@ -34,17 +34,19 @@ server.post("/participants", (req, res) => {
       } else {
         db.collection("participants")
           .insertOne({ name: name, lastStatus: Date.now() })
+          .then(
+            db.collection("messages")
+              .insertOne({
+                from: name,
+                to: "Todos",
+                text: "entra na sala...",
+                type: "status",
+                time: dayjs().format("HH:mm:ss"),
+              })
+              .then(res.sendStatus(201))
+              .catch((err) => console.log(err.message))
+          )
           .catch((err) => console.log(err.message));
-        db.collection("messages")
-          .insertOne({
-            from: name,
-            to: "Todos",
-            text: "entra na sala...",
-            type: "status",
-            time: dayjs().format("HH:mm:ss"),
-          })
-          .catch((err) => console.log(err.message));
-        res.sendStatus(201);
       }
     })
     .catch((err) => console.log(err.message));
