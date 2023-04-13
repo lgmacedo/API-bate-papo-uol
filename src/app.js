@@ -140,5 +140,42 @@ server.post("/status", (req, res) => {
     .catch((err) => console.log(err.message));
 });
 
+function clearParticipantsList() {
+  const nomes = [];
+  db.collection("participants")
+    .find({
+      $where: function () {
+        return Date.now() - this.lastStatus > 10000;
+      },
+    })
+    .toArray()
+    .then((participants) => {
+      participants.forEach((p) => {
+        nomes.push(p.name);
+      });
+    })
+    .then(() => {
+      db.collection("participants").deleteMany({
+        $where: function () {
+          return Date.now() - this.lastStatus > 10000;
+        },
+      });
+    })
+    .then(() => {
+      const messages = nomes.map((p) => ({
+        from: p,
+        to: "Todos",
+        text: "sai da sala...",
+        type: "status",
+        time: dayjs().format("HH:mm:ss"),
+      }));
+      if (messages.length !== 0) {
+        db.collection("messages").insertMany(messages);
+      }
+    })
+    .catch((err) => console.log(err.message));
+}
+setInterval(clearParticipantsList, 15000);
+
 const PORT = 5001;
 server.listen(PORT, console.log(`Server running on port ${PORT}`));
