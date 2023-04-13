@@ -62,15 +62,15 @@ server.get("/participants", (req, res) => {
 
 server.post("/messages", (req, res) => {
   const { to, text, type } = req.body;
-  const { from } = req.headers;
+  const { user } = req.headers;
   const schemaForStrings = Joi.string().required();
   const schemaForTypes = Joi.string()
     .valid("message", "private_message")
     .required();
   db.collection("participants")
-    .findOne({ name: from })
-    .then((user) => {
-      if (user === null) {
+    .findOne({ name: user })
+    .then((u) => {
+      if (!u) {
         res.sendStatus(422);
       } else {
         if (
@@ -82,7 +82,7 @@ server.post("/messages", (req, res) => {
         }
         db.collection("messages")
           .insertOne({
-            from,
+            from: user,
             to,
             text,
             type,
@@ -179,5 +179,5 @@ function clearParticipantsList() {
 }
 setInterval(clearParticipantsList, 15000);
 
-const PORT = 5000;
+const PORT = 5001;
 server.listen(PORT, console.log(`Server running on port ${PORT}`));
