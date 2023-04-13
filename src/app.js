@@ -35,7 +35,8 @@ server.post("/participants", (req, res) => {
         db.collection("participants")
           .insertOne({ name: name, lastStatus: Date.now() })
           .then(
-            db.collection("messages")
+            db
+              .collection("messages")
               .insertOne({
                 from: name,
                 to: "Todos",
@@ -143,41 +144,36 @@ server.post("/status", (req, res) => {
 });
 
 function clearParticipantsList() {
-  const nomes = [];
+  const dezSegundos = 10000;
   db.collection("participants")
-    .find({
-      $where: function () {
-        return Date.now() - this.lastStatus > 10000;
-      },
-    })
+    .find()
     .toArray()
     .then((participants) => {
       participants.forEach((p) => {
-        nomes.push(p.name);
+        const tempoPassado = Date.now() - p.lastStatus;
+        if (tempoPassado > dezSegundos) {
+          db.collection("participants")
+            .deleteOne({ name: p.name })
+            .then(
+              db
+                .collection("messages")
+                .insertOne({
+                  from: p.name,
+                  to: "Todos",
+                  text: "sai da sala...",
+                  type: "status",
+                  time: dayjs().format("HH:mm:ss"),
+                })
+                .then()
+                .catch((err) => console.log(err.message))
+            )
+            .catch((err) => console.log(err.message));
+        }
       });
-    })
-    .then(() => {
-      db.collection("participants").deleteMany({
-        $where: function () {
-          return Date.now() - this.lastStatus > 10000;
-        },
-      });
-    })
-    .then(() => {
-      const messages = nomes.map((p) => ({
-        from: p,
-        to: "Todos",
-        text: "sai da sala...",
-        type: "status",
-        time: dayjs().format("HH:mm:ss"),
-      }));
-      if (messages.length !== 0) {
-        db.collection("messages").insertMany(messages);
-      }
     })
     .catch((err) => console.log(err.message));
 }
 setInterval(clearParticipantsList, 15000);
 
-const PORT = 5000;
+const PORT = 5001;
 server.listen(PORT, console.log(`Server running on port ${PORT}`));
