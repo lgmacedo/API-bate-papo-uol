@@ -175,5 +175,5 @@ function clearParticipantsList() {
 }
 setInterval(clearParticipantsList, 15000);
 
-const PORT = 5001;
+const PORT = 5000;
 server.listen(PORT, console.log(`Server running on port ${PORT}`));
