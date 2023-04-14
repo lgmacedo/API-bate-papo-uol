@@ -42,7 +42,7 @@ server.post("/participants", async (req, res) => {
     });
     res.sendStatus(201);
   } catch (err) {
-    console.log(err.message);
+    res.status(500).send(err.message);
   }
 });
 
@@ -51,7 +51,7 @@ server.get("/participants", async (req, res) => {
     const users = await db.collection("participants").find().toArray();
     res.send(users);
   } catch (err) {
-    console.log(err.message);
+    res.status(500).send(err.message);
   }
 });
 
@@ -84,7 +84,7 @@ server.post("/messages", async (req, res) => {
     });
     res.sendStatus(201);
   } catch (err) {
-    console.log(err.message);
+    res.status(500).send(err.message);
   }
 });
 
@@ -114,7 +114,7 @@ server.get("/messages", async (req, res) => {
       res.send(msgs.slice(-numberLimit));
     }
   } catch (err) {
-    console.log(err.message);
+    res.status(500).send(err.message);
   }
 });
 
@@ -134,7 +134,7 @@ server.post("/status", async (req, res) => {
       .updateOne({ name: userDB.name }, { $set: { lastStatus: Date.now() } });
     res.sendStatus(200);
   } catch (err) {
-    console.log(err.message);
+    res.status(500).send(err.message);
   }
 });
 
@@ -173,6 +173,39 @@ server.delete("/messages/:ID_DA_MENSAGEM", async (req, res) => {
     if (!msg) return res.sendStatus(404);
     if (msg.from !== user) return res.sendStatus(401);
     await db.collection("messages").deleteOne(msg);
+    res.sendStatus(200);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+server.put("/messages/:ID_DA_MENSAGEM", async (req, res) => {
+  const { to, text, type } = req.body;
+  const { user } = req.headers;
+  const { ID_DA_MENSAGEM } = req.params;
+  const schemaForStrings = Joi.string().required();
+  const schemaForTypes = Joi.string()
+    .valid("message", "private_message")
+    .required();
+
+  try {
+    const u = await db.collection("participants").findOne({ name: user });
+    if (!u) {
+      return res.sendStatus(422);
+    }
+    if (
+      schemaForStrings.validate(to).error ||
+      schemaForStrings.validate(text).error ||
+      schemaForTypes.validate(type).error
+    ) {
+      return res.sendStatus(422);
+    }
+    const msg = await db
+      .collection("messages")
+      .findOne({ _id: new ObjectId(ID_DA_MENSAGEM) });
+    if (!msg) return res.sendStatus(404);
+    if (msg.from !== user) return res.sendStatus(401);
+    await db.collection("messages").updateOne(msg, { $set: req.body });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send(err.message);
