@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import Joi from "joi";
 import dayjs from "dayjs";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -161,6 +161,23 @@ async function clearParticipantsList() {
   }
 }
 setInterval(clearParticipantsList, 15000);
+
+server.delete("/messages/:ID_DA_MENSAGEM", async (req, res) => {
+  const { user } = req.headers;
+  const { ID_DA_MENSAGEM } = req.params;
+
+  try {
+    const msg = await db
+      .collection("messages")
+      .findOne({ _id: new ObjectId(ID_DA_MENSAGEM) });
+    if (!msg) return res.sendStatus(404);
+    if (msg.from !== user) return res.sendStatus(401);
+    await db.collection("messages").deleteOne(msg);
+    res.sendStatus(200);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
 
 const PORT = 5000;
 server.listen(PORT, console.log(`Server running on port ${PORT}`));
